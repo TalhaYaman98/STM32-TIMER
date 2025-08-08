@@ -26,16 +26,19 @@ STM32F4 Timer Hiyerarşisi
 
 Timer Clock Hesaplama Kuralları
   APB1 Prescaler = 1 ise:
+  
     ```
     Timer Clock = APB1 Clock
     ```
   
   APB1 Prescaler ≠ 1 ise:
+  
     ```
     Timer Clock = APB1 Clock × 2
     ```
   
   Bizim durumumuzda:
+  
     ```
     System Clock = 168 MHz
     APB1 Prescaler = 4
@@ -45,6 +48,7 @@ Timer Clock Hesaplama Kuralları
 
 Timer Parametrelerinin Hesaplanması
   Temel Formül
+  
     ```
     Output Frequency = Timer Clock ÷ (Prescaler + 1) ÷ (ARR + 1)
     ```
@@ -52,10 +56,12 @@ Timer Parametrelerinin Hesaplanması
   1 Hz Elde Etmek İçin Hesaplama
   
   Veriler:
+  
     - Timer Clock = 84 MHz
     - İstenen Frekans = 1 Hz
   
   Adım 1: Prescaler Seçimi
+  
     ```
     Prescaler = 8400 - 1 = 8399 (register değeri)
     Gerçek Bölme = 8400
@@ -63,41 +69,48 @@ Timer Parametrelerinin Hesaplanması
     ```
   
   Adım 2: ARR Hesaplama
+  
     ```
     ARR = (Prescaled Clock ÷ İstenen Frekans) - 1
     ARR = (10,000 ÷ 1) - 1 = 9999
     ```
   
   Doğrulama:
+  
     ```
     Çıkış Frekansı = 84,000,000 ÷ 8400 ÷ 10000 = 1 Hz ✓
     ```
 
 TIM2 Konfigürasyon Adımları
   1. Timer Clock Enable
+
     ```c
     RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;  // TIM2 saatini etkinleştir
     (void)RCC->APB1ENR;                  // Clock sync için readback
     ```
   
-  2. Prescaler ve Period Ayarları
+  3. Prescaler ve Period Ayarları
+
     ```c
     TIM2->PSC = 8399;    // Prescaler: 84MHz → 10kHz
     TIM2->ARR = 9999;    // Auto-Reload: 10kHz → 1Hz
     ```
   
-  3. Interrupt Konfigürasyonu
+  5. Interrupt Konfigürasyonu
+
     ```c
     TIM2->DIER |= TIM_DIER_UIE;          // Update interrupt enable
     ```
   
-  4. NVIC Ayarları
+  7. NVIC Ayarları
+
     ```c
     NVIC_SetPriority(TIM2_IRQn, 2U);     // Öncelik seviyesi
     NVIC_EnableIRQ(TIM2_IRQn);           // Interrupt enable
     ```
   
-  5. Timer Başlatma
+  9. Timer Başlatma
+      
     ```c
     TIM2->CR1 |= TIM_CR1_CEN;            // Counter enable
     ```
@@ -121,6 +134,7 @@ Timer Register'ları Detayı
     - Davranış: 0'dan ARR'a kadar saydırır, sonra sıfırlanır
   
   CR1 (Control Register 1)
+  
     ```c
     TIM_CR1_CEN    // Counter Enable
     TIM_CR1_UDIS   // Update Disable  
@@ -131,6 +145,7 @@ Timer Register'ları Detayı
     ```
   
   DIER (DMA/Interrupt Enable Register)
+  
     ```c
     TIM_DIER_UIE   // Update Interrupt Enable
     TIM_DIER_CC1IE // Capture/Compare 1 Interrupt Enable
@@ -138,6 +153,7 @@ Timer Register'ları Detayı
     ```
   
   SR (Status Register)
+  
     ```c
     TIM_SR_UIF     // Update Interrupt Flag
     TIM_SR_CC1IF   // Capture/Compare 1 Interrupt Flag  
@@ -146,23 +162,29 @@ Timer Register'ları Detayı
 
 Timer Interrupt İşleyici (ISR)
   Interrupt Akışı
+  
     ```
     1. Timer overflow (CNT = ARR)
        ↓
+       
     2. Hardware UIF bit'ini set eder
        ↓  
+       
     3. NVIC TIM2_IRQHandler()'ı çağırır
        ↓
+       
     4. Software UIF bit'ini temizler
        ↓
+       
     5. İş yapılır (LED toggle)
        ↓
+       
     6. ISR'dan çıkılır
     ```
-  
-  ISR Yazım Kuralları
-    ```
     
+  ISR Yazım Kuralları
+  
+    ```
     void TIM2_IRQHandler(void)
     {
         // 1. Flag kontrol et
@@ -182,18 +204,21 @@ Timer Interrupt İşleyici (ISR)
 
 Farklı Frekanslar İçin Hesaplama Örnekleri
   10 Hz İçin:
+  
     ```c
     uint32_t prescaler = 8400 - 1;      // 84MHz → 10kHz
     uint32_t arr = 1000 - 1;            // 10kHz → 10Hz
     ```
   
   100 Hz İçin:
+  
     ```c
     uint32_t prescaler = 840 - 1;       // 84MHz → 100kHz  
     uint32_t arr = 1000 - 1;            // 100kHz → 100Hz
     ```
   
   1 kHz İçin:
+  
     ```c
     uint32_t prescaler = 84 - 1;        // 84MHz → 1MHz
     uint32_t arr = 1000 - 1;            // 1MHz → 1kHz
@@ -201,6 +226,7 @@ Farklı Frekanslar İçin Hesaplama Örnekleri
 
 Timer Konfigürasyon Alternatifleri
   Preload Enable ile Güvenli Güncelleme
+  
     ```c
     TIM2->CR1 |= TIM_CR1_ARPE;          // Auto-reload preload enable
     TIM2->PSC = new_prescaler;
@@ -209,12 +235,14 @@ Timer Konfigürasyon Alternatifleri
     ```
 
   One-Shot Timer
+  
     ```c
     TIM2->CR1 |= TIM_CR1_OPM;           // One pulse mode
     // Timer bir kez overflow olur ve durur
     ```
   
   Down Counting
+  
     ```c
     TIM2->CR1 |= TIM_CR1_DIR;           // Down counting
     TIM2->CNT = TIM2->ARR;              // Start from top
@@ -222,8 +250,8 @@ Timer Konfigürasyon Alternatifleri
 
 Yaygın Hatalar ve Çözümleri
   1. Clock Enable Unutma
-    ```
 
+    ```
     // YANLIŞ:
     TIM2->PSC = 8399;  // Clock açılmadan register yazma
     
@@ -233,8 +261,8 @@ Yaygın Hatalar ve Çözümleri
     ```
   
   2. Flag Temizleme Unutma
+     
     ```
-
     // YANLIŞ:
     void TIM2_IRQHandler(void) {
         GPIOD->ODR ^= (1 << 12);  // Flag temizlenmedi!
@@ -250,8 +278,8 @@ Yaygın Hatalar ve Çözümleri
     ```
   
   3. NVIC Konfigürasyon Sırası
+     
     ```
-
     // YANLIŞ SIRA:
     NVIC_EnableIRQ(TIM2_IRQn);
     TIM2->DIER |= TIM_DIER_UIE;
@@ -264,8 +292,8 @@ Yaygın Hatalar ve Çözümleri
 
 Performans Optimizasyonu
   ISR Süresi Minimizasyonu
+  
     ```
-    
     // Yavaş yaklaşım:
     void TIM2_IRQHandler(void) {
         if (TIM2->SR & TIM_SR_UIF) {
@@ -302,8 +330,8 @@ Performans Optimizasyonu
 
 Debug ve Test Teknikleri
   Timer Durumunu Kontrol Etme
+  
     ```
-    
     // Debug bilgileri
     uint32_t current_count = TIM2->CNT;
     uint32_t prescaler_val = TIM2->PSC;  
@@ -312,8 +340,8 @@ Debug ve Test Teknikleri
     ```
   
   Frekans Ölçümü
+  
     ```
-    
     // GPIO pin ile frekans çıkışı (osiloskop için)
     void TIM2_IRQHandler(void) {
         if (TIM2->SR & TIM_SR_UIF) {
@@ -327,19 +355,23 @@ Debug ve Test Teknikleri
 
 İleri Seviye Timer Konuları
   Timer Chaining (Zincirleme)
-  - TIM2'yi master, TIM3'ü slave yapma
-  - Daha uzun periyotlar için 64-bit timer oluşturma
+  
+    - TIM2'yi master, TIM3'ü slave yapma
+    - Daha uzun periyotlar için 64-bit timer oluşturma
   
   PWM Generation
-  - Timer channel'ları ile PWM üretimi
-  - Duty cycle kontrolü
+  
+    - Timer channel'ları ile PWM üretimi
+    - Duty cycle kontrolü
   
   Input Capture
-  - Harici sinyal frekansı ölçümü
-  - Pulse width measurement
+  
+    - Harici sinyal frekansı ölçümü
+    - Pulse width measurement
   
   Output Compare
-  - Belirli zamanlarda çıkış üretimi
-  - Multi-channel timing
+  
+    - Belirli zamanlarda çıkış üretimi
+    - Multi-channel timing
 
 Timer Odaklı Öğrenme: Bu README, STM32 timer sistemini derinlemesine anlamanız için hazırlanmıştır. Her bölüm timer kavramlarını pekiştirmek üzere tasarlanmıştır.
