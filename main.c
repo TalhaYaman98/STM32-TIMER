@@ -114,6 +114,67 @@ void gpio_pd12_init(void)
 	GPIOD->BSRR = (1 << (12 + 16));             // PD12 pinini sıfırla (LED'i kapat)
 }
 
+/*
+
+RCC->AHB1ENR |= RCC_AHB1ENR_GPIODEN;
+	Amaç: GPIOD çevresinin clock’unu açar.
+	Neden gerekli: RCC (Reset and Clock Control) altında AHB1 bus üzerindeki her GPIO portu için ayrı clock enable biti vardır. Clock kapalıysa o portun register’larına erişmek çalışmaz veya default reset modunda kalır.
+	Bit konumu:
+		RCC_AHB1ENR_GPIODEN = (1 << 3) (Port A=0, B=1, C=2, D=3).
+		Bu bit 1 yapılınca GPIOD aktif olur.
+
+(void)RCC->AHB1ENR;
+	Amaç: “Dummy read” işlemi.
+	Neden: Bazı işlemcilerde clock enable işleminin etkili olması için bus senkronizasyonu gerekir. Okuma işlemi yazılan değerin gerçekten set edildiğini garanti eder.
+	Bu satır olmadan da genellikle çalışır ama güvenlik için kullanılır.
+
+GPIOD->MODER &= ~(0x3 << (12 * 2));
+GPIOD->MODER |=  (0x1 << (12 * 2));
+	Amaç: PD12 pininin mode ayarını yapmak.
+	MODER register’ı: Her pin için 2 bitlik alan vardır:
+		00 = Giriş
+		01 = Genel amaçlı çıkış (output)
+		10 = Alternatif fonksiyon (AF)
+		11 = Analog
+	İşlem:
+		Önce &= ~ ile 12. pinin 2 bitlik alanını sıfırlıyoruz ((12*2) offset).
+		Sonra |= ile 01 yazarak çıkış moduna alıyoruz.
+
+GPIOD->OTYPER &= ~(1 << 12);
+	Amaç: Çıkış tipini push-pull yapmak.
+	OTYPER register’ı:
+		0 = Push-pull (default, iki yönlü sürücü)
+		1 = Open-drain
+	PD12 için: Bit 12’yi 0 yaparak push-pull seçtik.
+
+GPIOD->OSPEEDR &= ~(0x3 << (12 * 2));
+GPIOD->OSPEEDR |=  (0x2 << (12 * 2));
+	Amaç: Çıkış hızını belirlemek.
+	OSPEEDR register’ı: Her pin için 2 bit:
+		00 = Düşük hız
+		01 = Orta hız
+		10 = Yüksek hız
+		11 = Çok yüksek hız
+	Seçim: 10 (yüksek hız) yaptık. LED gibi yavaş yüklerde fark etmez ama hızlı değişen sinyallerde önemli olur.
+
+GPIOD->PUPDR &= ~(0x3 << (12 * 2));
+	Amaç: Pull-up / Pull-down devrelerini kapatmak.
+	PUPDR register’ı: Her pin için 2 bit:
+		00 = Pull-up yok / Pull-down yok
+		01 = Pull-up aktif
+		10 = Pull-down aktif
+	Seçim: 00 yaparak pasif bıraktık. Çünkü çıkış modunda bu dirençler gereksiz.
+
+GPIOD->BSRR = (1 << (12 + 16));
+	Amaç: LED’i başlangıçta kapatmak.
+	BSRR register’ı:
+		Alt 16 bit (0–15) → pin set (1 yapılırsa pin HIGH)
+		Üst 16 bit (16–31) → pin reset (1 yapılırsa pin LOW)
+	İşlem: (12+16) ile 28. biti 1 yapıyoruz → PD12 LOW olur (LED söner).
+	Avantaj: BSRR’ye yazmak atomik bir işlemdir. ODR register’ı gibi read-modify-write gerektirmez, yarış durumu (race condition) riski düşüktür.
+
+*/
+
 void tim2_1hz_init(void)
 {
 
