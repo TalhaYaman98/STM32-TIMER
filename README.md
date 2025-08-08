@@ -14,10 +14,13 @@ STM32F4 Timer Hiyerarşisi
   ```
   System Clock (168 MHz)
       ↓
+
   AHB Bus (168 MHz)
       ↓
+
   APB1 Bus (42 MHz) → Timer Clock = APB1 × 2 = 84 MHz (APB1 prescaler ≠ 1 olduğunda)
       ↓
+
   TIM2/3/4/5 (General Purpose Timers)
   ```
 
