@@ -159,6 +159,7 @@ Timer Interrupt İşleyici (ISR)
   
   ISR Yazım Kuralları
     ```
+    
     void TIM2_IRQHandler(void)
     {
         // 1. Flag kontrol et
@@ -218,7 +219,8 @@ Timer Konfigürasyon Alternatifleri
 
 Yaygın Hatalar ve Çözümleri
   1. Clock Enable Unutma
-    ```c
+    ```
+
     // YANLIŞ:
     TIM2->PSC = 8399;  // Clock açılmadan register yazma
     
@@ -228,7 +230,8 @@ Yaygın Hatalar ve Çözümleri
     ```
   
   2. Flag Temizleme Unutma
-    ```c
+    ```
+
     // YANLIŞ:
     void TIM2_IRQHandler(void) {
         GPIOD->ODR ^= (1 << 12);  // Flag temizlenmedi!
@@ -244,7 +247,8 @@ Yaygın Hatalar ve Çözümleri
     ```
   
   3. NVIC Konfigürasyon Sırası
-    ```c
+    ```
+
     // YANLIŞ SIRA:
     NVIC_EnableIRQ(TIM2_IRQn);
     TIM2->DIER |= TIM_DIER_UIE;
@@ -257,7 +261,8 @@ Yaygın Hatalar ve Çözümleri
 
 Performans Optimizasyonu
   ISR Süresi Minimizasyonu
-    ```c
+    ```
+    
     // Yavaş yaklaşım:
     void TIM2_IRQHandler(void) {
         if (TIM2->SR & TIM_SR_UIF) {
@@ -294,7 +299,8 @@ Performans Optimizasyonu
 
 Debug ve Test Teknikleri
   Timer Durumunu Kontrol Etme
-    ```c
+    ```
+    
     // Debug bilgileri
     uint32_t current_count = TIM2->CNT;
     uint32_t prescaler_val = TIM2->PSC;  
@@ -303,7 +309,8 @@ Debug ve Test Teknikleri
     ```
   
   Frekans Ölçümü
-    ```c
+    ```
+    
     // GPIO pin ile frekans çıkışı (osiloskop için)
     void TIM2_IRQHandler(void) {
         if (TIM2->SR & TIM_SR_UIF) {
